@@ -24,7 +24,7 @@ const ModelsPage = () => {
       precision: 0.78, 
       recall: 0.72, 
       rocAuc: 0.8449,
-      selected: true,
+      selected: false,
       icon: '✓'
     },
     { 
@@ -42,7 +42,7 @@ const ModelsPage = () => {
       precision: 0.80, 
       recall: 0.73, 
       rocAuc: 0.85,
-      selected: false,
+      selected: true,
       icon: '⚡'
     },
   ];
