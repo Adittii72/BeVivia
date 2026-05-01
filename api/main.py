@@ -1,8 +1,3 @@
-"""
-BeVivia FastAPI Backend
-Production-grade API for churn predictions
-"""
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -18,22 +13,18 @@ import json
 from datetime import datetime
 import sys
 
-# Add src to path for feature engineering
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from features import FeatureEngineer
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Setup
 app = FastAPI(
     title="BeVivia Churn Intelligence API",
     description="Production-grade API for customer churn prediction",
     version="1.0.0"
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,7 +33,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load models and preprocessor
 PROJECT_ROOT = Path(__file__).parent.parent
 MODEL_PATH = PROJECT_ROOT / "models"
 STATIC_PATH = PROJECT_ROOT / "static"
@@ -53,7 +43,6 @@ feature_engineer = None
 
 
 def load_artifacts():
-    """Load trained models and preprocessor"""
     global models, preprocessor, feature_engineer
     try:
         models['logistic_regression'] = joblib.load(MODEL_PATH / "logistic_regression.pkl")
@@ -72,12 +61,7 @@ def load_artifacts():
         raise
 
 
-# ============================================================================
-# REQUEST/RESPONSE MODELS
-# ============================================================================
-
 class CustomerInput(BaseModel):
-    """Customer input for prediction"""
     tenure: int
     MonthlyCharges: float
     TotalCharges: float
@@ -100,7 +84,6 @@ class CustomerInput(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    """Prediction response"""
     churn_probability: float
     churn_prediction: int
     risk_level: str
@@ -109,7 +92,6 @@ class PredictionResponse(BaseModel):
 
 
 class BatchPredictionResponse(BaseModel):
-    """Batch prediction response"""
     predictions: List[Dict[str, Any]]
     total_count: int
     high_risk_count: int
@@ -118,33 +100,25 @@ class BatchPredictionResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """Health check response"""
     status: str
     timestamp: str
     models_loaded: int
 
 
 class ModelMetricsResponse(BaseModel):
-    """Model metrics response"""
     models: Dict[str, Dict[str, float]]
     best_model: str
     best_roc_auc: float
 
 
-# ============================================================================
-# ROUTES
-# ============================================================================
-
 @app.on_event("startup")
 async def startup_event():
-    """Load models on startup"""
     load_artifacts()
     logger.info("🚀 BeVivia API started")
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
     return HealthResponse(
         status="healthy",
         timestamp=datetime.now().isoformat(),
@@ -154,28 +128,15 @@ async def health_check():
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(customer: CustomerInput):
-    """
-    Make churn prediction for a single customer
-    
-    Input: Customer information (demographics, services, charges)
-    Output: Churn probability (0-1), prediction (0/1), risk level
-    """
     try:
-        # Convert input to dataframe
         input_df = pd.DataFrame([customer.dict()])
-        
-        # Apply feature engineering FIRST
         input_df = feature_engineer.create_derived_features(input_df)
-        
-        # Transform using preprocessor
         X_transformed = preprocessor.transform(input_df)
         
-        # Get prediction from best model (Random Forest)
         best_model = models['random_forest']
         churn_prob = best_model.predict_proba(X_transformed)[0, 1]
         prediction = best_model.predict(X_transformed)[0]
         
-        # Determine risk level
         if churn_prob < 0.30:
             risk_level = "Low"
         elif churn_prob < 0.70:
@@ -183,7 +144,6 @@ async def predict(customer: CustomerInput):
         else:
             risk_level = "High"
         
-        # Confidence
         confidence = max(churn_prob, 1 - churn_prob)
         
         return PredictionResponse(
@@ -201,28 +161,15 @@ async def predict(customer: CustomerInput):
 
 @app.post("/batch-predict", response_model=BatchPredictionResponse)
 async def batch_predict(customers: List[CustomerInput]):
-    """
-    Make batch churn predictions
-    
-    Input: List of customer information
-    Output: Predictions with risk distribution
-    """
     try:
-        # Convert to dataframe
         input_df = pd.DataFrame([c.dict() for c in customers])
-        
-        # Apply feature engineering FIRST
         input_df = feature_engineer.create_derived_features(input_df)
-        
-        # Transform
         X_transformed = preprocessor.transform(input_df)
         
-        # Predict
         best_model = models['random_forest']
         churn_probs = best_model.predict_proba(X_transformed)[:, 1]
         predictions = best_model.predict(X_transformed)
         
-        # Process results
         results = []
         risk_counts = {'High': 0, 'Medium': 0, 'Low': 0}
         
@@ -259,13 +206,10 @@ async def batch_predict(customers: List[CustomerInput]):
 
 @app.get("/model-info", response_model=ModelMetricsResponse)
 async def model_info():
-    """Get model information and metrics"""
     try:
-        # Load results
         with open(MODEL_PATH / "model_results.json") as f:
             results = json.load(f)
         
-        # Find best model
         best_model_name = max(results.keys(), key=lambda x: results[x]['ROC-AUC'])
         best_roc_auc = results[best_model_name]['ROC-AUC']
         
@@ -282,7 +226,6 @@ async def model_info():
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
         "message": "Welcome to BeVivia Churn Intelligence API",
         "version": "1.0.0",
@@ -296,18 +239,12 @@ async def root():
     }
 
 
-# Serve React static files
 if STATIC_PATH.exists():
     app.mount("/", StaticFiles(directory=str(STATIC_PATH), html=True), name="static")
 
 
-# ============================================================================
-# ERROR HANDLERS
-# ============================================================================
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Global exception handler"""
     logger.error(f"Unexpected error: {str(exc)}")
     return {
         "error": "Internal server error",

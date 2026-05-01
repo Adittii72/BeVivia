@@ -1,24 +1,16 @@
-"""
-BeVivia Configuration Module
-Production-grade ML configuration
-"""
-
 import os
 from pathlib import Path
 
-# Project paths
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_PATH = PROJECT_ROOT / "data"
 MODEL_PATH = PROJECT_ROOT / "models"
 CONFIG_PATH = PROJECT_ROOT / "config"
 
-# Data configuration
 DATA_FILE = PROJECT_ROOT / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
 VALIDATION_SIZE = 0.1
 
-# Feature configuration
 CATEGORICAL_FEATURES = [
     'gender', 'SeniorCitizen', 'Partner', 'Dependents',
     'PhoneService', 'MultipleLines', 'InternetService',
@@ -39,7 +31,6 @@ DERIVED_FEATURES = [
     'monthly_to_avg_ratio'
 ]
 
-# Model configuration
 MODEL_NAMES = ['Logistic Regression', 'Random Forest', 'XGBoost']
 MODEL_PARAMS = {
     'logistic_regression': {
@@ -70,17 +61,14 @@ MODEL_PARAMS = {
     }
 }
 
-# Churn risk levels
 CHURN_RISK_LEVELS = {
     'Low': (0, 0.30),
     'Medium': (0.30, 0.70),
     'High': (0.70, 1.0)
 }
 
-# API configuration
 API_HOST = "0.0.0.0"
 API_PORT = 8000
 API_DEBUG = False
 
-# Logging
 LOG_LEVEL = "INFO"
