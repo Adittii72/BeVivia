@@ -1,6 +1,6 @@
 """
-BeVivia - Enterprise Customer Churn Intelligence & Retention Platform
-Production-Grade Machine Learning System | Senior AI/Full-Stack Architecture
+BeVivia - Customer Churn Intelligence & Retention Platform
+Enterprise Machine Learning Application | Production Architecture
 """
 
 import streamlit as st
@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import joblib
 import json
 import sys
@@ -23,8 +22,8 @@ logger = logging.getLogger("bevivia")
 
 # Page Configuration
 st.set_page_config(
-    page_title="BeVivia | Churn Intelligence Platform",
-    page_icon="⚡",
+    page_title="BeVivia - Churn Intelligence Platform",
+    page_icon="▪",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -33,14 +32,13 @@ st.set_page_config(
 PROJECT_ROOT = Path(__file__).parent.parent
 MODEL_PATH = PROJECT_ROOT / "models"
 DATA_FILE = PROJECT_ROOT / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
-LOGO_PATH = PROJECT_ROOT / "logo image" / "download.svg"
 
 # Ensure src directory is in sys.path
 if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 # ============================================================================
-# MODERN DESIGN SYSTEM & EXECUTIVE CSS
+# UNIFIED ENTERPRISE DESIGN SYSTEM & CSS
 # ============================================================================
 st.markdown("""
 <style>
@@ -49,221 +47,176 @@ st.markdown("""
     /* Global Typography & Palette */
     html, body, [class*="css"] {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        color: #F1F5F9;
+        color: #E2E8F0;
     }
     
-    /* Top Bar & Background Polish */
+    /* Background Surface */
     .stApp {
-        background: radial-gradient(circle at 50% 0%, #172033 0%, #0B0F19 75%);
+        background-color: #0B0F17;
     }
 
-    /* Modern Card Containers */
+    /* Clean Enterprise Cards */
     .bevivia-card {
-        background: rgba(17, 24, 39, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
+        background: #111827;
+        border: 1px solid #1E293B;
+        border-radius: 12px;
         padding: 1.5rem;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        transition: all 0.25s ease-in-out;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         margin-bottom: 1.25rem;
-    }
-    
-    .bevivia-card:hover {
-        border-color: rgba(99, 102, 241, 0.35);
-        box-shadow: 0 15px 35px -10px rgba(99, 102, 241, 0.15);
     }
 
     .bevivia-card-accent {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
-        border: 1px solid rgba(99, 102, 241, 0.25);
-        border-radius: 16px;
+        background: #131D31;
+        border: 1px solid #312E81;
+        border-radius: 12px;
         padding: 1.5rem;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
-    /* Executive Metric Tiles */
+    /* KPI Summary Tiles */
     .kpi-container {
         display: flex;
         flex-direction: column;
-        background: rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 14px;
+        background: #111827;
+        border: 1px solid #1E293B;
+        border-radius: 10px;
         padding: 1.25rem 1.5rem;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .kpi-container::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #6366F1, #06B6D4);
+        height: 100%;
     }
 
     .kpi-title {
-        font-size: 0.825rem;
+        font-size: 0.775rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         color: #94A3B8;
         margin-bottom: 0.35rem;
     }
 
     .kpi-value {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 2rem;
-        font-weight: 800;
-        color: #FFFFFF;
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #F8FAFC;
         line-height: 1.2;
     }
 
     .kpi-badge {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
         font-size: 0.75rem;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 20px;
+        font-weight: 500;
+        color: #94A3B8;
         margin-top: 0.5rem;
-        width: fit-content;
-    }
-    
-    .kpi-badge-positive {
-        background: rgba(16, 185, 129, 0.15);
-        color: #34D399;
-        border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    
-    .kpi-badge-neutral {
-        background: rgba(99, 102, 241, 0.15);
-        color: #818CF8;
-        border: 1px solid rgba(99, 102, 241, 0.3);
     }
 
-    /* Live Status Pill */
+    /* Top Bar Status Pill */
     .status-pill {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 14px;
-        border-radius: 9999px;
-        background: rgba(16, 185, 129, 0.12);
-        border: 1px solid rgba(16, 185, 129, 0.25);
+        padding: 5px 12px;
+        border-radius: 6px;
+        background: #132326;
+        border: 1px solid #064E3B;
         color: #34D399;
-        font-size: 0.8rem;
+        font-size: 0.775rem;
         font-weight: 600;
         letter-spacing: 0.02em;
     }
 
-    .status-pulse {
-        width: 8px;
-        height: 8px;
+    .status-dot {
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         background: #10B981;
-        box-shadow: 0 0 10px #10B981;
-        animation: pulse-dot 2s infinite;
-    }
-
-    @keyframes pulse-dot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.4; transform: scale(0.85); }
     }
 
     /* Section Headers */
     .page-title {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 1.85rem;
-        font-weight: 800;
-        letter-spacing: -0.03em;
+        font-size: 1.65rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
         color: #F8FAFC;
         margin-bottom: 0.25rem;
     }
     
     .page-subtitle {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: #94A3B8;
         margin-bottom: 1.5rem;
+        line-height: 1.5;
     }
 
-    /* Custom Form & Button Styling */
+    /* Buttons */
     div.stButton > button {
-        background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+        background: #4F46E5;
         color: #FFFFFF;
-        border: none;
-        border-radius: 10px;
-        padding: 0.65rem 1.5rem;
+        border: 1px solid #6366F1;
+        border-radius: 8px;
+        padding: 0.6rem 1.25rem;
         font-weight: 600;
-        font-size: 0.95rem;
-        letter-spacing: 0.01em;
-        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.35);
-        transition: all 0.2s ease;
+        font-size: 0.9rem;
+        transition: all 0.15s ease;
         width: 100%;
     }
 
     div.stButton > button:hover {
-        background: linear-gradient(135deg, #4338CA 0%, #4F46E5 100%);
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
-        transform: translateY(-1px);
+        background: #4338CA;
+        border-color: #4F46E5;
+        color: #FFFFFF;
     }
 
-    /* Streamlit Input Cleanups */
-    .stSelectbox, .stSlider, .stNumberInput {
-        margin-bottom: 0.5rem;
-    }
-
-    /* Result Verdict Badges */
+    /* Verdict Card */
     .verdict-card {
         padding: 1.75rem;
-        border-radius: 16px;
+        border-radius: 12px;
         text-align: center;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
+        background: #111827;
+        border: 1px solid #1E293B;
     }
-    
+
     .verdict-high {
-        background: radial-gradient(circle, rgba(239, 68, 68, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%);
-        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-color: #7F1D1D;
+        background: #1A1319;
     }
-    
+
     .verdict-medium {
-        background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%);
-        border: 1px solid rgba(245, 158, 11, 0.4);
+        border-color: #78350F;
+        background: #1C1814;
     }
-    
+
     .verdict-low {
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(15, 23, 42, 0.9) 100%);
-        border: 1px solid rgba(16, 185, 129, 0.4);
+        border-color: #064E3B;
+        background: #0E1A18;
     }
 
-    /* Custom Navigation Styling */
+    /* Sidebar Clean */
     [data-testid="stSidebar"] {
-        background-color: #0B0F19;
-        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        background-color: #0E1420;
+        border-right: 1px solid #1E293B;
     }
 
-    /* Clean Tabs */
+    /* Tabs Clean */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background: rgba(15, 23, 42, 0.5);
-        padding: 6px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        gap: 6px;
+        background: #111827;
+        padding: 4px;
+        border-radius: 8px;
+        border: 1px solid #1E293B;
     }
 
     .stTabs [data-baseweb="tab"] {
-        padding: 8px 18px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.875rem;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.85rem;
         color: #94A3B8;
         border: none !important;
         background: transparent;
@@ -271,8 +224,7 @@ st.markdown("""
 
     .stTabs [aria-selected="true"] {
         background: #1E293B !important;
-        color: #FFFFFF !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        color: #F8FAFC !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -310,7 +262,7 @@ def load_models_and_preprocessor():
                     pass
             return models, preprocessor
     except Exception as err:
-        logger.warning(f"Pickle version mismatch detected ({err}). Recompiling ML pipeline in current runtime...")
+        logger.warning(f"Pickle compatibility detected ({err}). Recompiling ML pipeline in current runtime...")
 
     # Dynamic Self-Healing Training
     try:
@@ -344,7 +296,6 @@ def load_model_results():
                 return json.load(f)
         except Exception:
             pass
-    # Default fallback benchmarks
     return {
         "Random Forest": {
             "Accuracy": 0.8215,
@@ -387,27 +338,26 @@ def predict_churn(input_df, preprocessor, model):
 # ============================================================================
 
 def render_top_bar():
-    """Renders the executive platform top bar"""
+    """Renders the top navigation bar"""
     col_brand, col_status = st.columns([3, 1])
     
     with col_brand:
         st.markdown("""
-        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 0.5rem;">
-            <div style="background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%); 
-                        width: 42px; height: 42px; border-radius: 12px; display: flex; 
-                        align-items: center; justify-content: center; font-size: 1.4rem; 
-                        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);">
-                ⚡
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 0.25rem;">
+            <div style="background: #4F46E5; width: 36px; height: 36px; border-radius: 8px; 
+                        display: flex; align-items: center; justify-content: center; 
+                        font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.1rem; 
+                        font-weight: 800; color: #FFFFFF;">
+                BV
             </div>
             <div>
-                <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.5rem; 
-                            font-weight: 800; color: #FFFFFF; letter-spacing: -0.02em;">
+                <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.35rem; 
+                            font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em;">
                     BeVivia
-                    <span style="font-size: 0.75rem; font-weight: 600; padding: 2px 8px; 
-                                 background: #1E293B; border: 1px solid rgba(255,255,255,0.1); 
-                                 border-radius: 6px; color: #818CF8; margin-left: 6px;">ENTERPRISE</span>
+                    <span style="font-size: 0.7rem; font-weight: 600; padding: 2px 6px; 
+                                 background: #1E293B; border-radius: 4px; color: #94A3B8; margin-left: 6px;">ENTERPRISE</span>
                 </div>
-                <div style="font-size: 0.825rem; color: #94A3B8;">Customer Churn Intelligence & Retention Automation Platform</div>
+                <div style="font-size: 0.8rem; color: #94A3B8;">Customer Churn Intelligence & Retention Platform</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -416,13 +366,13 @@ def render_top_bar():
         st.markdown("""
         <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%;">
             <div class="status-pill">
-                <div class="status-pulse"></div>
+                <div class="status-dot"></div>
                 <span>Inference Active &bull; v1.0</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("<hr style='border: none; height: 1px; background: rgba(255,255,255,0.06); margin: 1rem 0 1.5rem 0;' />", unsafe_allow_html=True)
+    st.markdown("<hr style='border: none; height: 1px; background: #1E293B; margin: 0.75rem 0 1.25rem 0;' />", unsafe_allow_html=True)
 
 
 # ============================================================================
@@ -430,21 +380,21 @@ def render_top_bar():
 # ============================================================================
 
 def page_prediction():
-    st.markdown("<div class='page-title'>Predictive Risk Studio</div>", unsafe_allow_html=True)
-    st.markdown("<div class='page-subtitle'>Real-time customer risk scoring, key driver attribution, and prescriptive retention recommendations.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-title'>Prediction Studio</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-subtitle'>Real-time risk scoring, key driver attribution, and prescriptive retention recommendations.</div>", unsafe_allow_html=True)
 
     models, preprocessor = load_models_and_preprocessor()
     df = load_data()
 
     if not models or not preprocessor:
-        st.error("System initializing model engine. Please refresh in a moment.")
+        st.error("Model engine initializing. Please refresh in a moment.")
         return
 
-    # Persona Presets for Instant 1-Click Testing
-    st.markdown("<div style='font-size: 0.85rem; font-weight: 600; color: #94A3B8; margin-bottom: 0.5rem;'>⚡ 1-CLICK TEST PERSONAS:</div>", unsafe_allow_html=True)
+    # Presets for Quick Testing
+    st.markdown("<div style='font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748B; margin-bottom: 0.5rem;'>Test Scenarios:</div>", unsafe_allow_html=True)
     col_p1, col_p2, col_p3 = st.columns(3)
     
-    # Session state initialization for form inputs
+    # Session state initialization
     if "form_tenure" not in st.session_state:
         st.session_state.form_tenure = 4
         st.session_state.form_monthly = 95.0
@@ -455,14 +405,11 @@ def page_prediction():
         st.session_state.form_online_sec = "No"
         st.session_state.form_payment = "Electronic check"
         st.session_state.form_senior = "No"
-        st.session_state.form_partner = "No"
         st.session_state.form_dependents = "No"
-        st.session_state.form_phone = "Yes"
-        st.session_state.form_multilines = "Yes"
         st.session_state.form_paperless = "Yes"
 
     with col_p1:
-        if st.button("🚨 Load High-Risk Candidate"):
+        if st.button("High-Risk Candidate"):
             st.session_state.form_tenure = 2
             st.session_state.form_monthly = 99.5
             st.session_state.form_total = 199.0
@@ -475,7 +422,7 @@ def page_prediction():
             st.rerun()
 
     with col_p2:
-        if st.button("🟢 Load Loyal VIP Customer"):
+        if st.button("Loyal VIP Customer"):
             st.session_state.form_tenure = 64
             st.session_state.form_monthly = 65.0
             st.session_state.form_total = 4160.0
@@ -488,7 +435,7 @@ def page_prediction():
             st.rerun()
 
     with col_p3:
-        if st.button("🟠 Load Borderline At-Risk"):
+        if st.button("Moderate-Risk Profile"):
             st.session_state.form_tenure = 14
             st.session_state.form_monthly = 82.0
             st.session_state.form_total = 1148.0
@@ -506,15 +453,15 @@ def page_prediction():
 
     with col_input:
         st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 1rem;'>📋 Customer Account Configuration</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 1rem; font-weight: 700; color: #F8FAFC; margin-bottom: 1rem;'>Account Parameters</div>", unsafe_allow_html=True)
 
         with st.form("customer_prediction_form"):
-            # Section 1: Demographics & Account
-            st.markdown("<div style='font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #818CF8; margin-bottom: 0.5rem;'>1. Account & Subscription Profile</div>", unsafe_allow_html=True)
+            # Section 1: Account Profile
+            st.markdown("<div style='font-size: 0.775rem; font-weight: 700; text-transform: uppercase; color: #818CF8; margin-bottom: 0.5rem;'>1. Account & Subscription Profile</div>", unsafe_allow_html=True)
             
             c_tenure, c_monthly = st.columns(2)
             with c_tenure:
-                tenure = st.slider("Account Tenure (Months)", 0, 72, int(st.session_state.form_tenure), help="Total continuous months customer has been subscribed.")
+                tenure = st.slider("Account Tenure (Months)", 0, 72, int(st.session_state.form_tenure))
             with c_monthly:
                 monthly_charges = st.number_input("Monthly Charges ($)", 15.0, 150.0, float(st.session_state.form_monthly), step=1.0)
             
@@ -527,7 +474,7 @@ def page_prediction():
                 payment_method = st.selectbox("Payment Method", payment_options, index=payment_options.index(st.session_state.form_payment))
 
             # Section 2: Services
-            st.markdown("<div style='font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #818CF8; margin: 1rem 0 0.5rem 0;'>2. Telecom & Security Services</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 0.775rem; font-weight: 700; text-transform: uppercase; color: #818CF8; margin: 1rem 0 0.5rem 0;'>2. Services & Support</div>", unsafe_allow_html=True)
             
             c_net, c_sec, c_sup = st.columns(3)
             with c_net:
@@ -540,8 +487,8 @@ def page_prediction():
                 sup_options = ["No", "Yes", "No internet service"]
                 tech_support = st.selectbox("Tech Support", sup_options, index=sup_options.index(st.session_state.form_tech_support))
 
-            # Section 3: Household & Demographics
-            st.markdown("<div style='font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #818CF8; margin: 1rem 0 0.5rem 0;'>3. Household Demographics</div>", unsafe_allow_html=True)
+            # Section 3: Household
+            st.markdown("<div style='font-size: 0.775rem; font-weight: 700; text-transform: uppercase; color: #818CF8; margin: 1rem 0 0.5rem 0;'>3. Household Profile</div>", unsafe_allow_html=True)
             c_gen, c_sen, c_dep = st.columns(3)
             with c_gen:
                 gender = st.selectbox("Gender", ["Female", "Male"])
@@ -550,13 +497,12 @@ def page_prediction():
             with c_dep:
                 dependents = st.selectbox("Dependents", ["No", "Yes"], index=0 if st.session_state.form_dependents == "No" else 1)
 
-            st.markdown("<div style='margin-top: 1.25rem;'></div>", unsafe_allow_html=True)
-            submit_eval = st.form_submit_button("⚡ Run Predictive Risk Analysis", use_container_width=True)
+            st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+            submit_eval = st.form_submit_button("Calculate Risk Score", use_container_width=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_output:
-        # Compute default or submitted prediction
         total_calc = tenure * monthly_charges if tenure > 0 else monthly_charges
 
         input_data = pd.DataFrame({
@@ -581,39 +527,34 @@ def page_prediction():
             'PaymentMethod': [payment_method]
         })
 
-        # Inference using Random Forest
         active_model = models.get('Random Forest', list(models.values())[0])
         churn_prob, churn_pred = predict_churn(input_data, preprocessor, active_model)
 
         if churn_prob is not None:
             prob_pct = churn_prob * 100
             
-            # Risk Category determination
             if prob_pct >= 65:
                 badge_class = "verdict-high"
-                badge_title = "CRITICAL CHURN RISK"
-                badge_color = "#EF4444"
-                action_tone = "Immediate Intervention Required"
+                badge_title = "CRITICAL RISK"
+                badge_color = "#F87171"
             elif prob_pct >= 35:
                 badge_class = "verdict-medium"
-                badge_title = "MODERATE / AT-RISK"
-                badge_color = "#F59E0B"
-                action_tone = "Proactive Retention Recommended"
+                badge_title = "MODERATE RISK"
+                badge_color = "#FBBF24"
             else:
                 badge_class = "verdict-low"
-                badge_title = "HEALTHY & STABLE"
-                badge_color = "#10B981"
-                action_tone = "Account Loyalty Maintained"
+                badge_title = "LOW RISK"
+                badge_color = "#34D399"
 
             # Render Result Card
             st.markdown(f"""
             <div class="verdict-card {badge_class}">
-                <div style="font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; color: {badge_color};">RISK EVALUATION VERDICT</div>
+                <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; color: {badge_color};">RISK EVALUATION</div>
                 <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 2.75rem; font-weight: 800; color: #FFFFFF; line-height: 1;">
                     {prob_pct:.1f}%
                 </div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: {badge_color};">{badge_title}</div>
-                <div style="font-size: 0.85rem; color: #94A3B8;">Estimated Annual Value at Risk: <b style="color: #FFF;">${monthly_charges*12:,.0f}</b></div>
+                <div style="font-size: 1rem; font-weight: 700; color: {badge_color};">{badge_title}</div>
+                <div style="font-size: 0.8rem; color: #94A3B8;">Annual Value at Risk: <b style="color: #FFF;">${monthly_charges*12:,.0f}</b></div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -621,82 +562,84 @@ def page_prediction():
             fig_gauge = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=prob_pct,
-                number={'suffix': "%", 'font': {'size': 26, 'color': '#FFFFFF', 'family': 'Plus Jakarta Sans'}},
+                number={'suffix': "%", 'font': {'size': 24, 'color': '#FFFFFF', 'family': 'Plus Jakarta Sans'}},
                 domain={'x': [0, 1], 'y': [0, 1]},
                 gauge={
-                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "rgba(255,255,255,0.2)", 'tickfont': {'color': '#94A3B8'}},
+                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#334155", 'tickfont': {'color': '#94A3B8', 'size': 10}},
                     'bar': {'color': badge_color, 'thickness': 0.3},
-                    'bgcolor': "rgba(255,255,255,0.05)",
+                    'bgcolor': "#1E293B",
                     'borderwidth': 0,
                     'steps': [
-                        {'range': [0, 35], 'color': "rgba(16, 185, 129, 0.15)"},
-                        {'range': [35, 65], 'color': "rgba(245, 158, 11, 0.15)"},
-                        {'range': [65, 100], 'color': "rgba(239, 68, 68, 0.15)"}
+                        {'range': [0, 35], 'color': "rgba(16, 185, 129, 0.1)"},
+                        {'range': [35, 65], 'color': "rgba(245, 158, 11, 0.1)"},
+                        {'range': [65, 100], 'color': "rgba(239, 68, 68, 0.1)"}
                     ]
                 }
             ))
             fig_gauge.update_layout(
-                height=180,
+                height=160,
                 margin=dict(l=20, r=20, t=10, b=10),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)'
             )
             st.plotly_chart(fig_gauge, use_container_width=True)
 
-            # Key Risk Attribution Factors
+            # Attribution Breakdown
             st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.75rem;'>🔍 Attribution & Key Driver Breakdown</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 0.9rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.75rem;'>Primary Risk Factors</div>", unsafe_allow_html=True)
             
             driver_items = []
             if contract_type == "Month-to-month":
-                driver_items.append(("🔴 Month-to-Month Contract", "+26% Risk Exposure", "Zero lock-in commitment"))
+                driver_items.append(("[+] Month-to-Month Agreement", "+26% Risk", "No term commitment"))
             else:
-                driver_items.append(("🟢 Multi-Year Contract", "-22% Risk Exposure", "Long-term agreement"))
+                driver_items.append(("[-] Long-Term Contract", "-22% Risk", "Active term agreement"))
 
             if tenure < 6:
-                driver_items.append(("🔴 Early Lifecycle (< 6 mo)", "+19% Risk Exposure", "Onboarding vulnerability zone"))
+                driver_items.append(("[+] Early Lifecycle (< 6 mo)", "+19% Risk", "Early onboarding stage"))
             elif tenure > 24:
-                driver_items.append(("🟢 High Tenure Loyalty", "-18% Risk Exposure", "Established subscriber"))
+                driver_items.append(("[-] Established Account", "-18% Risk", "High tenure stability"))
 
             if internet_service == "Fiber optic" and tech_support == "No":
-                driver_items.append(("🔴 Fiber Optic with No Support", "+15% Risk Exposure", "High sensitivity to network outages"))
+                driver_items.append(("[+] Fiber Without Support", "+15% Risk", "Vulnerable to service disruption"))
             elif tech_support == "Yes":
-                driver_items.append(("🟢 Active Tech Support", "-12% Risk Exposure", "Assisted service stability"))
+                driver_items.append(("[-] Active Tech Support", "-12% Risk", "Service assistance active"))
 
             if payment_method == "Electronic check":
-                driver_items.append(("🟠 Electronic Check Payment", "+11% Risk Exposure", "Manual payment friction"))
+                driver_items.append(("[+] Electronic Check", "+11% Risk", "Non-automated payment method"))
 
             for label, delta, desc in driver_items[:3]:
+                is_pos = '+' in delta
+                delta_color = "#F87171" if is_pos else "#34D399"
                 st.markdown(f"""
                 <div style="display: flex; justify-content: space-between; align-items: center; 
-                            background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 8px; 
-                            margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.04);">
+                            background: #0E1420; padding: 8px 12px; border-radius: 6px; 
+                            margin-bottom: 6px; border: 1px solid #1E293B;">
                     <div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: #E2E8F0;">{label}</div>
-                        <div style="font-size: 0.75rem; color: #64748B;">{desc}</div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #E2E8F0;">{label}</div>
+                        <div style="font-size: 0.725rem; color: #64748B;">{desc}</div>
                     </div>
-                    <div style="font-size: 0.8rem; font-weight: 700; color: {'#EF4444' if '+' in delta else '#10B981'};">{delta}</div>
+                    <div style="font-size: 0.775rem; font-weight: 700; color: {delta_color};">{delta}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-            # Prescriptive Next-Best Action
+            # Recommended Action
             st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem;'>💡 Prescriptive Retention Play</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 0.9rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.5rem;'>Prescribed Action</div>", unsafe_allow_html=True)
             
             if prob_pct >= 65:
-                rec_title = "Priority 12-Month Lock-in Offer with Free Tech Support"
-                rec_detail = f"Customer has ${monthly_charges*12:,.0f}/yr ARR at high risk. Offer an instant 15% discount bundle in exchange for converting from month-to-month to an annual agreement with complimentary cybersecurity add-on."
+                rec_title = "Annual Contract Conversion with Support Bundle"
+                rec_detail = f"Account has ${monthly_charges*12:,.0f}/yr ARR at risk. Target with 15% discount for 12-month renewal and complimentary tech support add-on."
             elif prob_pct >= 35:
-                rec_title = "Automated Payment Incentive & Service Upgrade"
-                rec_detail = "Incentivize auto-pay enrollment with a one-time $10 credit to remove payment friction, paired with a personalized check-in from account management."
+                rec_title = "Auto-Pay Enrollment & Service Check"
+                rec_detail = "Incentivize auto-pay setup with a one-time bill credit and schedule proactive service quality verification."
             else:
-                rec_title = "Account Maintained - Eligible for VIP Referral Perks"
-                rec_detail = "Customer profile is highly stable. Target for multi-line expansion, premium speed tier upgrades, and customer advocacy programs."
+                rec_title = "Account Stable - Loyalty Maintenance"
+                rec_detail = "Profile is stable. Maintain standard engagement and qualify for multi-service expansion offers."
 
             st.markdown(f"""
-            <div style="background: rgba(79, 70, 229, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 10px; padding: 12px 14px;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: #A5B4FC;">🎯 {rec_title}</div>
-                <div style="font-size: 0.8rem; color: #CBD5E1; margin-top: 4px; line-height: 1.4;">{rec_detail}</div>
+            <div style="background: #131D31; border: 1px solid #312E81; border-radius: 8px; padding: 10px 12px;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: #A5B4FC;">{rec_title}</div>
+                <div style="font-size: 0.775rem; color: #94A3B8; margin-top: 3px; line-height: 1.4;">{rec_detail}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -708,8 +651,8 @@ def page_prediction():
 # ============================================================================
 
 def page_analytics():
-    st.markdown("<div class='page-title'>Customer Cohort & Churn Analytics</div>", unsafe_allow_html=True)
-    st.markdown("<div class='page-subtitle'>Interactive exploratory telemetry across 7,043 enterprise customer accounts.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-title'>Cohort Analytics</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-subtitle'>Telemetry and exploratory metrics across 7,043 customer accounts.</div>", unsafe_allow_html=True)
 
     df = load_data()
     if df is None:
@@ -730,7 +673,7 @@ def page_analytics():
         <div class="kpi-container">
             <div class="kpi-title">Total Active Accounts</div>
             <div class="kpi-value">{total_cust:,}</div>
-            <div class="kpi-badge kpi-badge-neutral">Dataset Base</div>
+            <div class="kpi-badge">Full Dataset Base</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -739,7 +682,7 @@ def page_analytics():
         <div class="kpi-container">
             <div class="kpi-title">Baseline Churn Rate</div>
             <div class="kpi-value">{churn_rate:.1f}%</div>
-            <div class="kpi-badge kpi-badge-positive">{churn_count:,} Attritions</div>
+            <div class="kpi-badge">{churn_count:,} Total Attritions</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -748,7 +691,7 @@ def page_analytics():
         <div class="kpi-container">
             <div class="kpi-title">Average Monthly Spend</div>
             <div class="kpi-value">${avg_monthly:.2f}</div>
-            <div class="kpi-badge kpi-badge-neutral">ARPU Index</div>
+            <div class="kpi-badge">ARPU Index</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -757,17 +700,17 @@ def page_analytics():
         <div class="kpi-container">
             <div class="kpi-title">Month-to-Month Churn</div>
             <div class="kpi-value" style="color: #F87171;">{m2m_churn:.1f}%</div>
-            <div class="kpi-badge" style="background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3);">High Vulnerability</div>
+            <div class="kpi-badge" style="color: #F87171;">High Exposure Segment</div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-    # Analytics Sub-Tabs
+    # Sub-Tabs
     tab_cohort, tab_contract, tab_financial = st.tabs([
-        "📈 Tenure & Cohort Survival",
-        "📑 Contract & Network Risk Matrix",
-        "💳 Financial & Payment Dynamics"
+        "Tenure Dynamics",
+        "Contract & Infrastructure",
+        "Financial & Payment Methods"
     ])
 
     with tab_cohort:
@@ -776,39 +719,38 @@ def page_analytics():
             fig_tenure = go.Figure()
             fig_tenure.add_trace(go.Histogram(
                 x=df[df['Churn'] == 'No']['tenure'],
-                name="Retained (Active)",
-                marker_color="#10B981",
-                opacity=0.75,
+                name="Retained",
+                marker_color="#4F46E5",
+                opacity=0.85,
                 nbinsx=24
             ))
             fig_tenure.add_trace(go.Histogram(
                 x=df[df['Churn'] == 'Yes']['tenure'],
                 name="Churned",
                 marker_color="#EF4444",
-                opacity=0.85,
+                opacity=0.75,
                 nbinsx=24
             ))
             fig_tenure.update_layout(
                 title="<b>Tenure Distribution by Churn Status</b>",
-                title_font=dict(color="#FFF", size=14),
+                title_font=dict(color="#F8FAFC", size=13),
                 barmode='overlay',
-                height=350,
+                height=340,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color="#94A3B8"),
-                xaxis=dict(title="Tenure (Months)", gridcolor="rgba(255,255,255,0.05)"),
-                yaxis=dict(title="Customer Count", gridcolor="rgba(255,255,255,0.05)"),
+                xaxis=dict(title="Tenure (Months)", gridcolor="#1E293B"),
+                yaxis=dict(title="Count", gridcolor="#1E293B"),
                 legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center")
             )
             st.plotly_chart(fig_tenure, use_container_width=True)
 
         with c2:
-            # Tenure bucket churn rates
             df_buckets = df.copy()
             df_buckets['tenure_group'] = pd.cut(
                 df_buckets['tenure'],
                 bins=[-1, 6, 12, 24, 48, 72],
-                labels=['0-6m (Early)', '6-12m', '1-2 Years', '2-4 Years', '4+ Years']
+                labels=['0-6m', '6-12m', '1-2 Years', '2-4 Years', '4+ Years']
             )
             bucket_rates = df_buckets.groupby('tenure_group')['Churn'].apply(lambda x: (x == 'Yes').mean() * 100).reset_index()
             
@@ -817,18 +759,18 @@ def page_analytics():
                 x='tenure_group',
                 y='Churn',
                 title="<b>Churn Rate (%) across Lifecycle Stages</b>",
-                labels={'Churn': 'Churn Rate %', 'tenure_group': 'Lifecycle Cohort'},
+                labels={'Churn': 'Churn Rate %', 'tenure_group': 'Cohort'},
                 color='Churn',
-                color_continuous_scale=['#10B981', '#F59E0B', '#EF4444']
+                color_continuous_scale=['#4F46E5', '#6366F1', '#EF4444']
             )
             fig_b.update_layout(
-                height=350,
+                height=340,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color="#94A3B8"),
                 coloraxis_showscale=False,
-                xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
-                yaxis=dict(gridcolor="rgba(255,255,255,0.05)")
+                xaxis=dict(gridcolor="#1E293B"),
+                yaxis=dict(gridcolor="#1E293B")
             )
             st.plotly_chart(fig_b, use_container_width=True)
 
@@ -841,7 +783,7 @@ def page_analytics():
                 x=contract_churn.index,
                 y=contract_churn['No'],
                 name="Retained",
-                marker_color="#10B981"
+                marker_color="#4F46E5"
             ))
             fig_c.add_trace(go.Bar(
                 x=contract_churn.index,
@@ -850,13 +792,14 @@ def page_analytics():
                 marker_color="#EF4444"
             ))
             fig_c.update_layout(
-                title="<b>Churn Rate by Contract Type</b>",
+                title="<b>Churn Rate by Contract Agreement</b>",
+                title_font=dict(color="#F8FAFC", size=13),
                 barmode='stack',
-                height=350,
+                height=340,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color="#94A3B8"),
-                yaxis=dict(title="Percentage (%)", gridcolor="rgba(255,255,255,0.05)"),
+                yaxis=dict(title="Percentage (%)", gridcolor="#1E293B"),
                 legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center")
             )
             st.plotly_chart(fig_c, use_container_width=True)
@@ -868,7 +811,7 @@ def page_analytics():
                 x=net_churn.index,
                 y=net_churn['No'],
                 name="Retained",
-                marker_color="#10B981"
+                marker_color="#4F46E5"
             ))
             fig_net.add_trace(go.Bar(
                 x=net_churn.index,
@@ -878,12 +821,13 @@ def page_analytics():
             ))
             fig_net.update_layout(
                 title="<b>Churn Rate by Internet Infrastructure</b>",
+                title_font=dict(color="#F8FAFC", size=13),
                 barmode='stack',
-                height=350,
+                height=340,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color="#94A3B8"),
-                yaxis=dict(title="Percentage (%)", gridcolor="rgba(255,255,255,0.05)"),
+                yaxis=dict(title="Percentage (%)", gridcolor="#1E293B"),
                 legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center")
             )
             st.plotly_chart(fig_net, use_container_width=True)
@@ -896,16 +840,16 @@ def page_analytics():
                 x='Churn',
                 y='MonthlyCharges',
                 color='Churn',
-                color_discrete_map={'No': '#10B981', 'Yes': '#EF4444'},
+                color_discrete_map={'No': '#4F46E5', 'Yes': '#EF4444'},
                 title="<b>Monthly Charges ($) Distribution vs Churn</b>"
             )
             fig_m.update_layout(
-                height=350,
+                height=340,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color="#94A3B8"),
                 showlegend=False,
-                yaxis=dict(gridcolor="rgba(255,255,255,0.05)")
+                yaxis=dict(gridcolor="#1E293B")
             )
             st.plotly_chart(fig_m, use_container_width=True)
 
@@ -916,17 +860,17 @@ def page_analytics():
                 x='PaymentMethod',
                 y='Yes',
                 title="<b>Churn Rate (%) by Payment Method</b>",
-                labels={'Yes': 'Churn Rate %', 'PaymentMethod': 'Payment Method'},
+                labels={'Yes': 'Churn Rate %', 'PaymentMethod': 'Method'},
                 color='Yes',
-                color_continuous_scale='Reds'
+                color_continuous_scale=['#4F46E5', '#EF4444']
             )
             fig_pay.update_layout(
-                height=350,
+                height=340,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color="#94A3B8"),
                 coloraxis_showscale=False,
-                yaxis=dict(gridcolor="rgba(255,255,255,0.05)")
+                yaxis=dict(gridcolor="#1E293B")
             )
             st.plotly_chart(fig_pay, use_container_width=True)
 
@@ -936,14 +880,13 @@ def page_analytics():
 # ============================================================================
 
 def page_model_comparison():
-    st.markdown("<div class='page-title'>Model Benchmark Arena</div>", unsafe_allow_html=True)
-    st.markdown("<div class='page-subtitle'>Rigorous comparative evaluation across Random Forest, XGBoost, and Logistic Regression.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-title'>Model Benchmarks</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-subtitle'>Comparative evaluation across Random Forest, XGBoost, and Logistic Regression algorithms.</div>", unsafe_allow_html=True)
 
     results = load_model_results()
     df_results = pd.DataFrame(results).T
 
-    # Leaderboard Cards
-    st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.75rem;'>🏆 Production Model Performance Leaderboard</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 0.9rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.75rem;'>Model Leaderboard</div>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     models_list = list(results.keys())
@@ -958,43 +901,42 @@ def page_model_comparison():
                 st.markdown(f"""
                 <div class="{'bevivia-card-accent' if is_best else 'bevivia-card'}">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <div style="font-weight: 700; font-size: 1.1rem; color: #FFFFFF;">{m_name}</div>
-                        {'<span style="background: rgba(16, 185, 129, 0.2); color: #34D399; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.4);">SELECTED</span>' if is_best else ''}
+                        <div style="font-weight: 700; font-size: 1rem; color: #FFFFFF;">{m_name}</div>
+                        {'<span style="background: #1E1B4B; color: #818CF8; font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; border: 1px solid #3730A3;">PRODUCTION</span>' if is_best else ''}
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+                        <div style="background: #0B0F17; padding: 8px 10px; border-radius: 6px;">
                             <div style="font-size: 0.7rem; color: #94A3B8;">ROC-AUC</div>
-                            <div style="font-size: 1.25rem; font-weight: 800; color: #60A5FA;">{m_metrics.get('ROC-AUC', 0):.4f}</div>
+                            <div style="font-size: 1.15rem; font-weight: 700; color: #60A5FA;">{m_metrics.get('ROC-AUC', 0):.4f}</div>
                         </div>
-                        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+                        <div style="background: #0B0F17; padding: 8px 10px; border-radius: 6px;">
                             <div style="font-size: 0.7rem; color: #94A3B8;">Accuracy</div>
-                            <div style="font-size: 1.25rem; font-weight: 800; color: #34D399;">{m_metrics.get('Accuracy', 0):.4f}</div>
+                            <div style="font-size: 1.15rem; font-weight: 700; color: #34D399;">{m_metrics.get('Accuracy', 0):.4f}</div>
                         </div>
-                        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+                        <div style="background: #0B0F17; padding: 8px 10px; border-radius: 6px;">
                             <div style="font-size: 0.7rem; color: #94A3B8;">Precision</div>
-                            <div style="font-size: 1.1rem; font-weight: 700; color: #CBD5E1;">{m_metrics.get('Precision', 0):.4f}</div>
+                            <div style="font-size: 1rem; font-weight: 600; color: #CBD5E1;">{m_metrics.get('Precision', 0):.4f}</div>
                         </div>
-                        <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+                        <div style="background: #0B0F17; padding: 8px 10px; border-radius: 6px;">
                             <div style="font-size: 0.7rem; color: #94A3B8;">Recall</div>
-                            <div style="font-size: 1.1rem; font-weight: 700; color: #CBD5E1;">{m_metrics.get('Recall', 0):.4f}</div>
+                            <div style="font-size: 1rem; font-weight: 600; color: #CBD5E1;">{m_metrics.get('Recall', 0):.4f}</div>
                         </div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-    st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 0.75rem;'></div>", unsafe_allow_html=True)
 
-    # Visual Benchmarks
     c_radar, c_features = st.columns([1, 1], gap="medium")
 
     with c_radar:
         st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem;'>Radar Evaluation Multi-Axis</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 0.9rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.5rem;'>Evaluation Radar</div>", unsafe_allow_html=True)
         
         metrics_axes = ['Accuracy', 'Precision', 'Recall', 'F1-Score', 'ROC-AUC']
         fig_radar = go.Figure()
         
-        colors = ['#6366F1', '#10B981', '#F59E0B']
+        colors = ['#6366F1', '#38BDF8', '#94A3B8']
         for idx, (m_name, m_data) in enumerate(results.items()):
             vals = [m_data.get(k, 0) for k in metrics_axes]
             fig_radar.add_trace(go.Scatterpolar(
@@ -1003,16 +945,16 @@ def page_model_comparison():
                 fill='toself',
                 name=m_name,
                 line_color=colors[idx % len(colors)],
-                opacity=0.6
+                opacity=0.45
             ))
             
         fig_radar.update_layout(
             polar=dict(
-                radialaxis=dict(visible=True, range=[0.5, 0.9], gridcolor="rgba(255,255,255,0.08)", linecolor="rgba(255,255,255,0.1)"),
-                angularaxis=dict(gridcolor="rgba(255,255,255,0.08)")
+                radialaxis=dict(visible=True, range=[0.5, 0.9], gridcolor="#1E293B", linecolor="#334155"),
+                angularaxis=dict(gridcolor="#1E293B")
             ),
-            height=340,
-            margin=dict(l=40, r=40, t=20, b=20),
+            height=320,
+            margin=dict(l=40, r=40, t=15, b=15),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color="#94A3B8"),
@@ -1023,7 +965,7 @@ def page_model_comparison():
 
     with c_features:
         st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem;'>Top 10 Global Feature Importances</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 0.9rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.5rem;'>Global Feature Importance</div>", unsafe_allow_html=True)
         
         feature_importance_data = {
             "Feature": [
@@ -1048,17 +990,17 @@ def page_model_comparison():
             y="Feature",
             orientation="h",
             color="Importance",
-            color_continuous_scale="Viridis"
+            color_continuous_scale=['#312E81', '#6366F1']
         )
         fig_fi.update_layout(
-            height=340,
+            height=320,
             margin=dict(l=0, r=10, t=10, b=10),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color="#94A3B8"),
             coloraxis_showscale=False,
-            xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
-            yaxis=dict(gridcolor="rgba(255,255,255,0.05)")
+            xaxis=dict(gridcolor="#1E293B"),
+            yaxis=dict(gridcolor="#1E293B")
         )
         st.plotly_chart(fig_fi, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1069,24 +1011,23 @@ def page_model_comparison():
 # ============================================================================
 
 def page_insights():
-    st.markdown("<div class='page-title'>Retention ROI Simulator & Strategy</div>", unsafe_allow_html=True)
-    st.markdown("<div class='page-subtitle'>Simulate financial return-on-investment from proactive AI retention campaigns.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-title'>Retention ROI Simulator</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-subtitle'>Financial model for estimating revenue preserved from predictive retention campaigns.</div>", unsafe_allow_html=True)
 
-    # Interactive ROI Calculator
     st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 1rem;'>💰 Enterprise Retention Business Case Simulator</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 1rem; font-weight: 700; color: #F8FAFC; margin-bottom: 1rem;'>Campaign Parameters</div>", unsafe_allow_html=True)
 
     col_s1, col_s2, col_s3, col_s4 = st.columns(4)
     with col_s1:
         target_accounts = st.number_input("Target At-Risk Accounts", 100, 10000, 1000, step=100)
     with col_s2:
-        arpu = st.number_input("Annual ARPU ($/Customer)", 200, 3000, 780, step=50)
+        arpu = st.number_input("Annual ARPU ($/Account)", 200, 3000, 780, step=50)
     with col_s3:
         save_rate = st.slider("Campaign Save Rate (%)", 10, 80, 45, step=5)
     with col_s4:
-        campaign_cost_per = st.number_input("Cost per Retention Offer ($)", 10, 250, 45, step=5)
+        campaign_cost_per = st.number_input("Offer Cost per Account ($)", 10, 250, 45, step=5)
 
-    # Financial projections
+    # Projections
     total_revenue_at_risk = target_accounts * arpu
     saved_accounts = int(target_accounts * (save_rate / 100))
     gross_saved_revenue = saved_accounts * arpu
@@ -1102,16 +1043,16 @@ def page_insights():
         <div class="kpi-container">
             <div class="kpi-title">Gross ARR at Risk</div>
             <div class="kpi-value">${total_revenue_at_risk:,.0f}</div>
-            <div class="kpi-badge kpi-badge-neutral">{target_accounts:,} Accounts</div>
+            <div class="kpi-badge">{target_accounts:,} Target Accounts</div>
         </div>
         """, unsafe_allow_html=True)
         
     with r2:
         st.markdown(f"""
         <div class="kpi-container">
-            <div class="kpi-title">Projected Accounts Saved</div>
+            <div class="kpi-title">Accounts Preserved</div>
             <div class="kpi-value" style="color: #34D399;">{saved_accounts:,}</div>
-            <div class="kpi-badge kpi-badge-positive">{save_rate}% Success Rate</div>
+            <div class="kpi-badge">{save_rate}% Success Target</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1120,62 +1061,62 @@ def page_insights():
         <div class="kpi-container">
             <div class="kpi-title">Net Revenue Preserved</div>
             <div class="kpi-value" style="color: #60A5FA;">${net_profit_saved:,.0f}</div>
-            <div class="kpi-badge kpi-badge-neutral">After Campaign Costs</div>
+            <div class="kpi-badge">Net of Campaign Costs</div>
         </div>
         """, unsafe_allow_html=True)
 
     with r4:
         st.markdown(f"""
         <div class="kpi-container">
-            <div class="kpi-title">Campaign Net ROI</div>
+            <div class="kpi-title">Program Net ROI</div>
             <div class="kpi-value" style="color: #FBBF24;">{roi_multiplier:.1f}x</div>
-            <div class="kpi-badge" style="background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3);">High Impact</div>
+            <div class="kpi-badge">Return on Spend</div>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 90-Day Retention Roadmap
+    # 90-Day Roadmap
     st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 1rem;'>🗓️ 90-Day Enterprise Retention Implementation Roadmap</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size: 1rem; font-weight: 700; color: #F8FAFC; margin-bottom: 1rem;'>90-Day Implementation Roadmap</div>", unsafe_allow_html=True)
 
     c_step1, c_step2, c_step3 = st.columns(3)
     
     with c_step1:
         st.markdown("""
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1.25rem;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: #818CF8; letter-spacing: 0.05em;">DAYS 1 - 30</div>
-            <div style="font-weight: 700; font-size: 1rem; color: #FFFFFF; margin: 0.25rem 0 0.5rem 0;">Onboarding & Early Stabilization</div>
-            <ul style="font-size: 0.825rem; color: #94A3B8; padding-left: 1.2rem; margin: 0; line-height: 1.6;">
-                <li>Deploy automated onboarding check-in at Day 14</li>
-                <li>Offer 1-click router configuration assistance for fiber clients</li>
-                <li>Enroll month-to-month subscribers in annual discount trial</li>
+        <div style="background: #0E1420; border: 1px solid #1E293B; border-radius: 8px; padding: 1.25rem;">
+            <div style="font-size: 0.725rem; font-weight: 700; color: #818CF8; letter-spacing: 0.05em;">PHASE 1 (DAYS 1 - 30)</div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #FFFFFF; margin: 0.25rem 0 0.5rem 0;">Onboarding & Early Stability</div>
+            <ul style="font-size: 0.8rem; color: #94A3B8; padding-left: 1.1rem; margin: 0; line-height: 1.6;">
+                <li>Automated check-in trigger at Day 14 for new subscribers</li>
+                <li>Setup assistance for high-speed fiber accounts</li>
+                <li>Trial incentive for annual contract conversions</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
 
     with c_step2:
         st.markdown("""
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1.25rem;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: #06B6D4; letter-spacing: 0.05em;">DAYS 31 - 60</div>
-            <div style="font-weight: 700; font-size: 1rem; color: #FFFFFF; margin: 0.25rem 0 0.5rem 0;">Service Bundling & Support Access</div>
-            <ul style="font-size: 0.825rem; color: #94A3B8; padding-left: 1.2rem; margin: 0; line-height: 1.6;">
-                <li>Bundle free 90-day Cybersecurity & Tech Support with fiber accounts</li>
-                <li>Incentivize migration from Electronic Checks to Auto-Pay via $10 credit</li>
-                <li>Trigger proactive support call upon 2+ detected speed drops</li>
+        <div style="background: #0E1420; border: 1px solid #1E293B; border-radius: 8px; padding: 1.25rem;">
+            <div style="font-size: 0.725rem; font-weight: 700; color: #38BDF8; letter-spacing: 0.05em;">PHASE 2 (DAYS 31 - 60)</div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #FFFFFF; margin: 0.25rem 0 0.5rem 0;">Service Bundling & Auto-Pay</div>
+            <ul style="font-size: 0.8rem; color: #94A3B8; padding-left: 1.1rem; margin: 0; line-height: 1.6;">
+                <li>Complimentary tech support bundle for at-risk accounts</li>
+                <li>Credit incentive for auto-pay migration from check payments</li>
+                <li>Proactive diagnostic alerts for performance drops</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
 
     with c_step3:
         st.markdown("""
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1.25rem;">
-            <div style="font-size: 0.75rem; font-weight: 700; color: #10B981; letter-spacing: 0.05em;">DAYS 61 - 90</div>
-            <div style="font-weight: 700; font-size: 1rem; color: #FFFFFF; margin: 0.25rem 0 0.5rem 0;">VIP Loyalty & Multi-Line Expansion</div>
-            <ul style="font-size: 0.825rem; color: #94A3B8; padding-left: 1.2rem; margin: 0; line-height: 1.6;">
-                <li>Launch milestone anniversary rewards for accounts reaching 24+ months</li>
-                <li>Deploy family multi-line discounts to increase retention lock-in</li>
-                <li>Establish dedicated high-value subscriber advocacy queue</li>
+        <div style="background: #0E1420; border: 1px solid #1E293B; border-radius: 8px; padding: 1.25rem;">
+            <div style="font-size: 0.725rem; font-weight: 700; color: #34D399; letter-spacing: 0.05em;">PHASE 3 (DAYS 61 - 90)</div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #FFFFFF; margin: 0.25rem 0 0.5rem 0;">Loyalty & Expansion</div>
+            <ul style="font-size: 0.8rem; color: #94A3B8; padding-left: 1.1rem; margin: 0; line-height: 1.6;">
+                <li>Milestone anniversary discounts for accounts over 24 months</li>
+                <li>Multi-line account family bundles</li>
+                <li>High-value subscriber queue routing</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -1188,31 +1129,31 @@ def page_insights():
 # ============================================================================
 
 def page_about():
-    st.markdown("<div class='page-title'>System Architecture & API Hub</div>", unsafe_allow_html=True)
-    st.markdown("<div class='page-subtitle'>Full-stack machine learning engineering, data pipelines, and REST API interfaces.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-title'>System Architecture & API</div>", unsafe_allow_html=True)
+    st.markdown("<div class='page-subtitle'>Machine learning pipeline specifications and REST API interface.</div>", unsafe_allow_html=True)
 
     c_arch, c_api = st.columns(2, gap="medium")
 
     with c_arch:
         st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.75rem;'>🏗️ ML Pipeline Architecture</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 1rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.75rem;'>Pipeline Architecture</div>", unsafe_allow_html=True)
         
         st.markdown("""
-        - **1. Ingestion & Cleaning**: Automated schema validation, imputation of total charges, and IQR outlier boundary treatment.
-        - **2. Domain Feature Engineering**: Computes 7+ derived indices:
-          - *Tenure Bucketing & Cohort Lifecycle Mapping*
-          - *Service Depth & Value-Add Adoption Score*
-          - *Contract Stability Index & Commitment Weight*
+        - **1. Ingestion & Validation**: Schema verification, TotalCharges null handling, and IQR outlier boundaries.
+        - **2. Feature Engineering**: Computes 7+ derived indices:
+          - *Tenure Buckets and Lifecycle Stages*
+          - *Service Depth Index*
+          - *Contract Stability Score*
           - *Monthly-to-Lifetime Charge Ratio*
         - **3. Preprocessing Transformer**: Scikit-Learn `ColumnTransformer` with `OneHotEncoder(handle_unknown='ignore')` and `StandardScaler`.
-        - **4. Model Ensemble**: Balanced class weights applied to mitigate positive class imbalance (~26.5%).
-        - **5. High-Throughput Inference**: Serialized via Joblib for sub-15ms prediction latency.
+        - **4. Model Evaluation**: Random Forest, XGBoost, and Logistic Regression trained with balanced class weights (~26.5% positive imbalance).
+        - **5. Inference Serialization**: Sub-15ms prediction latency.
         """)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with c_api:
         st.markdown("<div class='bevivia-card'>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.75rem;'>🔌 REST API Integration (FastAPI)</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 1rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.75rem;'>REST API Interface</div>", unsafe_allow_html=True)
 
         st.code("""# POST /predict
 curl -X POST "http://localhost:8000/predict" \\
@@ -1241,33 +1182,28 @@ curl -X POST "http://localhost:8000/predict" \\
 # ============================================================================
 
 def main():
-    # Render Platform Top Bar
     render_top_bar()
 
     # Sidebar Navigation
     st.sidebar.markdown("""
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
-        <div style="background: #4F46E5; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">⚡</div>
-        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.1rem; font-weight: 800; color: #FFFFFF;">Navigation</div>
-    </div>
+    <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; margin-bottom: 0.5rem;">Navigation</div>
     """, unsafe_allow_html=True)
 
     pages = {
-        "🔮 Prediction Studio": page_prediction,
-        "📊 Cohort Analytics": page_analytics,
-        "🏆 Model Benchmarks": page_model_comparison,
-        "💡 Retention ROI Simulator": page_insights,
-        "ℹ️ System Architecture": page_about
+        "Prediction Studio": page_prediction,
+        "Cohort Analytics": page_analytics,
+        "Model Benchmarks": page_model_comparison,
+        "Retention ROI Simulator": page_insights,
+        "System Architecture": page_about
     }
 
     selected = st.sidebar.radio("Navigation Menu", list(pages.keys()), label_visibility="collapsed")
 
-    # Sidebar Architecture Badge
-    st.sidebar.markdown("<hr style='border: none; height: 1px; background: rgba(255,255,255,0.06); margin: 1.5rem 0;' />", unsafe_allow_html=True)
+    st.sidebar.markdown("<hr style='border: none; height: 1px; background: #1E293B; margin: 1.5rem 0;' />", unsafe_allow_html=True)
     st.sidebar.markdown("""
-    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1rem;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #818CF8; text-transform: uppercase;">Engine Telemetry</div>
-        <div style="font-size: 0.8rem; color: #CBD5E1; margin-top: 6px; line-height: 1.5;">
+    <div style="background: #111827; border: 1px solid #1E293B; border-radius: 8px; padding: 1rem;">
+        <div style="font-size: 0.725rem; font-weight: 700; color: #818CF8; text-transform: uppercase; letter-spacing: 0.05em;">Engine Telemetry</div>
+        <div style="font-size: 0.775rem; color: #94A3B8; margin-top: 6px; line-height: 1.6;">
             &bull; <b>Model:</b> Random Forest<br>
             &bull; <b>ROC-AUC:</b> 84.5%<br>
             &bull; <b>Features:</b> 27 Computed<br>
