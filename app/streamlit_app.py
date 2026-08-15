@@ -11,6 +11,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import joblib
 import json
+import sys
+import subprocess
 from pathlib import Path
 import logging
 from datetime import datetime
@@ -121,6 +123,13 @@ st.markdown("""
 def load_models_and_preprocessor():
     """Load trained models and preprocessor"""
     try:
+        # If model artifacts are missing, train them automatically on first boot
+        rf_path = MODEL_PATH / "random_forest.pkl"
+        prep_path = MODEL_PATH / "preprocessor.pkl"
+        if not rf_path.exists() or not prep_path.exists():
+            logger.info("Models not found on disk. Initiating training pipeline...")
+            subprocess.run([sys.executable, str(PROJECT_ROOT / "src" / "train.py")], check=True)
+
         lr_model = joblib.load(MODEL_PATH / "logistic_regression.pkl")
         rf_model = joblib.load(MODEL_PATH / "random_forest.pkl")
         preprocessor = joblib.load(MODEL_PATH / "preprocessor.pkl")
@@ -133,7 +142,7 @@ def load_models_and_preprocessor():
         try:
             xgb_model = joblib.load(MODEL_PATH / "xgboost.pkl")
             models['XGBoost'] = xgb_model
-        except:
+        except Exception:
             pass
         
         return models, preprocessor

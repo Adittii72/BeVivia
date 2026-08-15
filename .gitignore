@@ -154,7 +154,6 @@ dist-ssr/
 *.local
 
 # Project specific
-*.pkl
 *.joblib
 *.h5
 .streamlit/
